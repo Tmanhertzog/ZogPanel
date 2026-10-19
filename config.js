@@ -4,9 +4,11 @@
 const CONFIG_DEFAULTS = {
   USER_NAME: "",
   DEFAULT_THEME: "basic",
+  OPEN_MODE: "startup",
   SEARCH_URL: "https://www.google.com/search?q=",
 
   BACKGROUND_IMAGES_DIR: "basic_bkg_images",
+  MOTIVATED_QUOTE_THEME: "brutal ambition, discipline and conquest",
   MOTIVATED_QUOTE: "Impossible is a word to be found only in the dictionary of fools.",
   MOTIVATED_QUOTE_AUTHOR: "Napoleon Bonaparte",
 
@@ -18,6 +20,11 @@ const CONFIG_DEFAULTS = {
   NOTION_TASKS_DS: "",
   NOTION_PROJECTS_DS: "",
   NOTION_NEWS_TOPICS_DS: "",
+
+  NEWS_REFRESH_HOURS: "3",
+  NEWS_ALL_PER_TOPIC: "1",
+  NEWS_LANGUAGE: "en",
+  NEWS_REGION: "US",
 
   AI_PROVIDER: "openai",
   OPENAI_API_KEY: "",

@@ -4,12 +4,14 @@ A personal dashboard for Chrome that opens once when the browser starts. It show
 
 ## Features
 
-- Opens once per browser launch (no duplicate tabs), or from the toolbar icon
-- Three themes: **Basic** (random photo backdrop), **Motivated** (dark, electric purple, quote), **Chill** (teal)
+- Opens once when Chrome starts, or replaces every new tab (your choice in Settings); also from the toolbar icon
+- Three themes: **Basic** (random photo backdrop), **Motivated** (dark, electric purple, AI-picked quote of the day), **Chill** (teal)
 - Editable shortcuts stored in a Notion database
 - Your real Chrome bookmarks, grouped by folder
 - Search bar pinned in the bottom third of the screen, with a switch to the AI chat
-- Coming next: Notion tasks and projects, AI-summarized news, an assistant that writes to Notion
+- Tasks and projects from Notion, with progress and one-click completion
+- AI assistant that adds, updates and removes tasks, projects and news topics, and adds shortcuts (OpenAI or Gemini). Removals ask for confirmation; its instructions live in `assistant-instructions.md`
+- News for your Notion topics: Google News headlines, picked and summarized by AI
 
 ## Setup
 
@@ -40,14 +42,19 @@ A personal dashboard for Chrome that opens once when the browser starts. It show
 | Key | What it does |
 | --- | --- |
 | `USER_NAME` | Name in the greeting |
+| `OPEN_MODE` | `startup` (once when Chrome starts) or `newtab` (every new tab). Settings in the dashboard override it |
 | `DEFAULT_THEME` | `basic`, `motivated` or `chill` (until you pick one) |
 | `SEARCH_URL` | Search engine; the query is appended |
 | `BACKGROUND_IMAGES_DIR` | Photo folder for the Basic theme. If you rename it, update `.gitignore` too |
-| `MOTIVATED_QUOTE`, `MOTIVATED_QUOTE_AUTHOR` | Quote on the Motivated theme |
+| `MOTIVATED_QUOTE_THEME` | Theme for the Motivated theme's daily AI-picked quote |
+| `MOTIVATED_QUOTE`, `MOTIVATED_QUOTE_AUTHOR` | Fallback quote when there's no AI key |
 | `MAX_SHORTCUTS` | Maximum number of shortcuts |
 | `NOTION_TOKEN`, `NOTION_VERSION` | Notion API access |
 | `NOTION_*_DS` | Data source IDs of your Notion databases |
-| `AI_PROVIDER` | `openai` or `gemini`: which AI runs the assistant |
+| `NEWS_REFRESH_HOURS` | How often news refreshes (default 3) |
+| `NEWS_ALL_PER_TOPIC` | Stories per topic in the All view (default 1) |
+| `NEWS_LANGUAGE`, `NEWS_REGION` | Google News edition, e.g. `en` and `US` |
+| `AI_PROVIDER` | `openai` or `gemini`: which AI runs the assistant and news summaries |
 | `OPENAI_API_KEY`, `OPENAI_MODEL` | OpenAI key and model (default `gpt-5.4-nano`) |
 | `GEMINI_API_KEY`, `GEMINI_MODEL` | Gemini key and model (default `gemini-3.1-flash-lite`) |
 
@@ -58,11 +65,14 @@ A personal dashboard for Chrome that opens once when the browser starts. It show
 | File | Purpose |
 | --- | --- |
 | `manifest.json` | Chrome extension manifest (MV3) |
-| `background.js` | Opens the dashboard once on startup |
+| `background.js` | Opens the dashboard on startup or on new tabs |
 | `dashboard.html/.css/.js` | The dashboard |
 | `config.js` | Reads `.env` |
 | `notion.js` | Small Notion API client |
 | `tasks.js` | Tasks and Projects cards (Notion) |
-| `assistant.js` | AI chat that adds tasks, projects, topics and shortcuts |
+| `assistant.js` | AI chat that manages tasks, projects, topics and shortcuts |
+| `assistant-instructions.md` | The assistant's instructions; edit to change how it behaves |
+| `quote.js` | Motivated theme's daily quote |
+| `news.js` | News card: Google News headlines per topic, picked and summarized by AI |
 | `theme-boot.js` | Applies the saved theme before first paint |
 | `update-images.ps1` | Rebuilds the background photo list |

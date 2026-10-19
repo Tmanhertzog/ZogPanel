@@ -17,7 +17,6 @@
     <div class="bg-photo"></div>
     <div class="bg-deco"></div>
   </div>
-  <div class="photo-caption" id="photoCaption" hidden></div>
 
   <div class="page">
     <!-- Greeting + theme picker -->
@@ -53,6 +52,7 @@
     <main class="columns">
       <!-- LEFT -->
       <div class="col">
+        <div class="photo-caption" id="photoCaption" hidden></div>
         <section class="card">
           <div class="card-head">
             <h2>Shortcuts</h2>
@@ -135,8 +135,15 @@
         </section>
 
         <section class="card">
-          <div class="card-head"><h2>News</h2><span class="hint">AI summaries</span></div>
-          <p class="placeholder">Stories for the active topics in your Notion "News Topics" database (phase 3).</p>
+          <div class="card-head">
+            <h2>News</h2>
+            <span id="newsStatus" class="sync-status"></span>
+            <button type="button" id="newsRefresh" class="icon-btn small" aria-label="Refresh news" title="Refresh news">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.6-6.4"></path><path d="M21 4v5h-5"></path></svg>
+            </button>
+          </div>
+          <div id="newsTopics" class="tabs news-tabs"></div>
+          <div id="newsList" class="news-list"></div>
         </section>
 
       </div>
@@ -162,6 +169,11 @@
   <dialog id="settingsDialog" class="sc-dialog">
     <form id="settingsForm" method="dialog" autocomplete="off">
       <h3>Settings</h3>
+      <fieldset class="open-mode">
+        <legend>Open ZogPanel</legend>
+        <label class="radio"><input type="radio" name="openMode" value="startup" /> Once, when Chrome starts</label>
+        <label class="radio"><input type="radio" name="openMode" value="newtab" /> On every new tab</label>
+      </fieldset>
       <label>Notion integration token
         <input id="notionToken" type="password" placeholder="ntn_…" spellcheck="false" />
       </label>
@@ -182,6 +194,8 @@
   <script src="notion.js"></script>
   <script src="tasks.js"></script>
   <script src="assistant.js"></script>
+  <script src="news.js"></script>
+  <script src="quote.js"></script>
   <script src="dashboard.js"></script>
 </body>
 </html>

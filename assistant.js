@@ -64,6 +64,33 @@ const AI_TOOLS = [
     },
   },
   {
+    name: "remove_task",
+    description: "Delete a task (moves it to Notion's trash). Only when the user clearly asks to delete or remove it; to finish a task use update_task with status Done.",
+    parameters: {
+      type: "object",
+      properties: { task: { type: "string", description: "Name of the task to remove" } },
+      required: ["task"],
+    },
+  },
+  {
+    name: "remove_project",
+    description: "Delete a project (moves it to Notion's trash). Its tasks are kept but unlinked.",
+    parameters: {
+      type: "object",
+      properties: { project: { type: "string", description: "Name of the project to remove" } },
+      required: ["project"],
+    },
+  },
+  {
+    name: "remove_news_topic",
+    description: "Stop following a news topic (moves it to Notion's trash).",
+    parameters: {
+      type: "object",
+      properties: { topic: { type: "string", description: "Name of the topic to remove" } },
+      required: ["topic"],
+    },
+  },
+  {
     name: "add_shortcut",
     description: "Add a website shortcut to the dashboard.",
     parameters: {
@@ -79,6 +106,7 @@ const AI_TOOLS = [
 
 let chatHistory = [];   // [{ role: "user" | "assistant", text }]
 let chatBusy = false;
+let pendingRemovals = null;   // [{ label, kind, run }] waiting for the user to confirm
 
 // ---------- provider plumbing ----------
 function aiProvider() {
@@ -89,20 +117,34 @@ function aiReady() {
   return aiProvider() === "gemini" ? !!Config.get("GEMINI_API_KEY") : !!Config.get("OPENAI_API_KEY");
 }
 
+// Instructions live in assistant-instructions.md (edit that file, then reload the extension).
+let instructionsTemplate = "";
+const FALLBACK_INSTRUCTIONS = [
+  "You are the assistant inside ZogPanel. Your only job is to add, update or remove the user's Notion tasks, projects and news topics, and add website shortcuts, by calling the provided tools.",
+  "Today is {{today}} ({{today_iso}}). Convert relative dates to YYYY-MM-DD.",
+  "Existing projects: {{projects}}", "Open tasks: {{tasks}}", "News topics: {{news_topics}}",
+  "Use exact names from these lists. Only remove things when clearly asked. If unclear, ask one short question. Otherwise say briefly what you can do. Keep text replies to one sentence.",
+].join("\n");
+
+async function loadInstructions() {
+  try {
+    const res = await fetch(chrome.runtime.getURL("assistant-instructions.md"), { cache: "no-store" });
+    if (res.ok) instructionsTemplate = (await res.text()).replace(/<!--[\s\S]*?-->/g, "").trim();
+  } catch {}
+  if (!instructionsTemplate) instructionsTemplate = FALLBACK_INSTRUCTIONS;
+}
+
 function systemPrompt() {
   const now = new Date();
-  const today = now.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
-  const iso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-  const projects = workProjects.filter((p) => p.status !== "Done").map((p) => p.name);
-  const tasks = workTasks.filter((t) => t.status !== "Done").slice(0, 40).map((t) => t.name);
-  return [
-    "You are the assistant inside ZogPanel, a personal dashboard. Your only job is to add or update items in the user's Notion: tasks, projects, news topics and website shortcuts, by calling the provided tools.",
-    `Today is ${today} (${iso}). Convert relative dates like "Friday" or "next week" to YYYY-MM-DD.`,
-    `Existing projects: ${projects.length ? projects.join("; ") : "none"}.`,
-    `Open tasks: ${tasks.length ? tasks.join("; ") : "none"}.`,
-    "Use exact names from these lists when referring to existing items. You may call several tools at once.",
-    "If a request is unclear, ask one short question. If it isn't about these items, say briefly what you can do. Never invent tools. Keep any text reply to one sentence.",
-  ].join("\n");
+  const list = (names) => (names.length ? names.join("; ") : "none");
+  const values = {
+    today: now.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" }),
+    today_iso: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`,
+    projects: list(workProjects.filter((p) => p.status !== "Done").map((p) => p.name)),
+    tasks: list(workTasks.filter((t) => t.status !== "Done").slice(0, 40).map((t) => t.name)),
+    news_topics: list((typeof newsTopics !== "undefined" ? newsTopics : []).map((t) => t.name)),
+  };
+  return (instructionsTemplate || FALLBACK_INSTRUCTIONS).replace(/\{\{\s*(\w+)\s*\}\}/g, (m, k) => (k in values ? values[k] : m));
 }
 
 async function callOpenAI(messages) {
@@ -226,6 +268,27 @@ async function runTool({ name, args }) {
       return `Now following news on “${args.topic}”`;
     }
 
+    case "remove_task": {
+      const { item, ambiguous } = findByName(workTasks, args.task);
+      if (!item) return ambiguous ? `Which task did you mean: ${ambiguous.join(", ")}?` : `I couldn't find a task called “${args.task}”.`;
+      return { confirm: { label: `Task “${item.name}”`, kind: "work", run: () => Notion.trashPage(item.id) } };
+    }
+
+    case "remove_project": {
+      const { item, ambiguous } = findByName(workProjects, args.project);
+      if (!item) return ambiguous ? `Which project did you mean: ${ambiguous.join(", ")}?` : `I couldn't find a project called “${args.project}”.`;
+      return { confirm: { label: `Project “${item.name}”`, kind: "work", run: () => Notion.trashPage(item.id) } };
+    }
+
+    case "remove_news_topic": {
+      if (!NOTION_DEFAULTS.newsTopics) throw new Error("NOTION_NEWS_TOPICS_DS isn't set");
+      const rows = await Notion.queryAll(NOTION_DEFAULTS.newsTopics);
+      const topics = rows.map((r) => ({ id: r.id, name: Notion.plain(r.properties.Topic) || "Untitled" }));
+      const { item, ambiguous } = findByName(topics, args.topic);
+      if (!item) return ambiguous ? `Which topic did you mean: ${ambiguous.join(", ")}?` : `I couldn't find a news topic called “${args.topic}”.`;
+      return { confirm: { label: `News topic “${item.name}”`, kind: "news", run: () => Notion.trashPage(item.id) } };
+    }
+
     case "add_shortcut": {
       const url = normalizeUrl(args.url || "");
       if (!url) return `“${args.url}” doesn't look like a web address.`;
@@ -244,14 +307,52 @@ function renderChat() {
   log.replaceChildren();
   if (!chatHistory.length) {
     log.append(el("div", { class: "bubble bot", text: aiReady()
-      ? "Tell me what to add or change. For example: “Add a high-priority task to finish the deck by Friday under Website.”"
+      ? "Tell me what to add, change or remove. For example: “Add a high-priority task to finish the deck by Friday under Website.”"
       : `Add ${aiProvider() === "gemini" ? "GEMINI_API_KEY" : "OPENAI_API_KEY"} to your .env file, then reload the extension.` }));
   }
   for (const m of chatHistory) {
     log.append(el("div", { class: "bubble " + (m.role === "user" ? "me" : m.error ? "bot error" : "bot"), text: m.text }));
   }
+  if (pendingRemovals) {
+    const box = el("div", { class: "bubble bot confirm", role: "group", "aria-label": "Confirm removal" }, [
+      el("span", { text: "Remove " + (pendingRemovals.length === 1 ? "this" : `these ${pendingRemovals.length}`) + "? It goes to Notion's trash, where you can restore it for 30 days." }),
+      el("ul", {}, pendingRemovals.map((r) => el("li", { text: r.label }))),
+    ]);
+    const yes = el("button", { type: "button", class: "confirm-yes", text: "Remove" });
+    const no = el("button", { type: "button", class: "confirm-no", text: "Cancel" });
+    yes.addEventListener("click", confirmRemovals);
+    no.addEventListener("click", cancelRemovals);
+    box.append(el("div", { class: "confirm-actions" }, [no, yes]));
+    log.append(box);
+  }
   if (chatBusy) log.append(el("div", { class: "bubble bot typing", "aria-label": "Working", text: "…" }));
   log.scrollTop = log.scrollHeight;
+}
+
+async function confirmRemovals() {
+  const items = pendingRemovals || [];
+  pendingRemovals = null;
+  chatBusy = true;
+  renderChat();
+  const lines = [];
+  let anyError = false;
+  for (const r of items) {
+    try { await r.run(); lines.push(`Removed ${r.label}`); }
+    catch (e) { lines.push(`Couldn't remove ${r.label}: ${e.message}`); anyError = true; }
+  }
+  chatBusy = false;
+  chatHistory.push({ role: "assistant", text: lines.join("\n"), error: anyError || undefined });
+  renderChat();
+  await saveChat();
+  if (items.some((r) => r.kind === "work")) pullWork();
+  if (items.some((r) => r.kind === "news") && typeof refreshNews === "function") refreshNews();
+}
+
+async function cancelRemovals() {
+  pendingRemovals = null;
+  chatHistory.push({ role: "assistant", text: "Okay, nothing was removed." });
+  renderChat();
+  await saveChat();
 }
 
 async function saveChat() {
@@ -264,24 +365,29 @@ async function sendChat(text) {
   chatBusy = true;
   renderChat();
 
-  let reply = "", isError = false, wroteSomething = false;
+  let reply = "", isError = false, wroteSomething = false, newTopic = false;
   try {
     const recent = chatHistory.filter((m) => !m.error).slice(-8);
     const { text: aiText, calls } = aiProvider() === "gemini" ? await callGemini(recent) : await callOpenAI(recent);
     if (calls.length) {
       const results = [];
+      const removals = [];
       for (const call of calls) {
         try {
-          results.push(await runTool(call));
-          if (call.name !== "add_shortcut") wroteSomething = true;
+          const result = await runTool(call);
+          if (result && result.confirm) { removals.push(result.confirm); continue; }
+          results.push(result);
+          if (call.name === "add_news_topic") newTopic = true;
+          else if (call.name !== "add_shortcut") wroteSomething = true;
         } catch (e) {
           results.push(`Couldn't do that in Notion: ${e.message}`);
           isError = true;
         }
       }
       reply = results.join("\n");
+      if (removals.length) pendingRemovals = removals;
     } else {
-      reply = aiText || "Sorry, I didn't get that. I can add tasks, projects, news topics and shortcuts.";
+      reply = aiText || "Sorry, I didn't get that. I can add, update or remove tasks, projects and news topics, and add shortcuts.";
     }
   } catch (e) {
     console.error("ZogPanel assistant", e);
@@ -290,13 +396,15 @@ async function sendChat(text) {
   }
 
   chatBusy = false;
-  chatHistory.push({ role: "assistant", text: reply, error: isError || undefined });
+  if (reply) chatHistory.push({ role: "assistant", text: reply, error: isError || undefined });
   renderChat();
   await saveChat();
   if (wroteSomething) pullWork();
+  if (newTopic && typeof refreshNews === "function") refreshNews();
 }
 
 async function initAssistant() {
+  await loadInstructions();
   const { chatHistory: saved } = await chrome.storage.local.get("chatHistory");
   if (Array.isArray(saved)) chatHistory = saved;
 
@@ -312,11 +420,13 @@ async function initAssistant() {
     const text = input.value.trim();
     if (!text || chatBusy) return;
     input.value = "";
+    if (pendingRemovals) { pendingRemovals = null; }
     sendChat(text);
   });
 
   $("#chatClear").addEventListener("click", async () => {
     chatHistory = [];
+    pendingRemovals = null;
     renderChat();
     await saveChat();
   });

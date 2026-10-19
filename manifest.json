@@ -1,13 +1,15 @@
 {
   "manifest_version": 3,
   "name": "ZogPanel",
-  "version": "0.10.0",
+  "version": "0.15.0",
   "description": "Personal dashboard that opens once when Chrome starts: bookmarks, shortcuts, tasks, projects and news.",
   "permissions": ["bookmarks", "topSites", "tabs", "storage", "favicon"],
   "host_permissions": [
     "https://api.notion.com/*",
     "https://api.openai.com/*",
-    "https://generativelanguage.googleapis.com/*"
+    "https://generativelanguage.googleapis.com/*",
+    "https://news.google.com/*",
+    "https://www.bing.com/*"
   ],
   "background": {
     "service_worker": "background.js"

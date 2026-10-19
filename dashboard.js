@@ -50,6 +50,7 @@ function applyTheme(theme) {
     btn.setAttribute("aria-checked", String(btn.dataset.themeChoice === theme));
   }
   lsSet("zog.theme", theme);
+  if (typeof maybeRefreshQuote === "function" && Config.loadedEnv !== undefined) maybeRefreshQuote();
 }
 
 async function initThemes() {
@@ -435,6 +436,7 @@ async function runNotionCheck({ closeOnSuccess }) {
     pullShortcutsFromNotion._retried = false;
     loadShortcuts();
     loadWork({ fromCache: false });
+    loadNews();
     if (closeOnSuccess) setTimeout(() => $("#settingsDialog").close(), 1200);
     return true;
   }
@@ -444,13 +446,26 @@ async function runNotionCheck({ closeOnSuccess }) {
   return false;
 }
 
+async function currentOpenMode() {
+  const { openMode } = await chrome.storage.sync.get("openMode");
+  const mode = openMode || Config.get("OPEN_MODE");
+  return mode === "newtab" ? "newtab" : "startup";
+}
+
 function initSettings() {
   const dlg = $("#settingsDialog");
+  for (const radio of document.querySelectorAll('input[name="openMode"]')) {
+    radio.addEventListener("change", () => {
+      if (radio.checked) chrome.storage.sync.set({ openMode: radio.value });
+    });
+  }
   $("#openSettings").addEventListener("click", async () => {
     const { notionToken = "" } = await chrome.storage.local.get("notionToken");
     $("#notionToken").value = notionToken;
     $("#notionToken").placeholder = Config.get("NOTION_TOKEN") ? "Using NOTION_TOKEN from .env" : "ntn_…";
     $("#settingsStatus").textContent = "";
+    const mode = await currentOpenMode();
+    for (const radio of document.querySelectorAll('input[name="openMode"]')) radio.checked = radio.value === mode;
     dlg.showModal();
     if (await Notion.token()) runNotionCheck({ closeOnSuccess: false });
   });
@@ -539,26 +554,28 @@ async function loadBookmarks() {
 
 // ---------- init ----------
 // ---------- quote ----------
-function applyQuote() {
-  const q = Config.get("MOTIVATED_QUOTE");
-  const a = Config.get("MOTIVATED_QUOTE_AUTHOR");
-  if (q) $(".quote blockquote").textContent = `“${q.replace(/^[“"]|[”"]$/g, "")}”`;
-  $(".quote figcaption").textContent = a;
-  $(".quote figcaption").hidden = !a;
-}
+// Quote of the day: see quote.js
 
 (async function init() {
   await Config.ready;
   try { activeRootId = localStorage.getItem("zog.bmTab"); } catch {}
   applyQuote();
   renderClock();
+  if (location.hash === "#newtab") {
+    history.replaceState(null, "", location.pathname);
+    setTimeout(() => { if ($("#midStack").dataset.mode !== "chat") $("#searchInput").focus(); }, 50);
+  }
   setInterval(renderClock, 30_000);
   initSearch();
   initModeSwitch();
   initShortcuts();
   initSettings();
   initWork();
-  await Promise.all([initThemes(), initPhoto(), loadShortcuts(), loadWork(), loadBookmarks(), initAssistant()]);
+  initNews();
+  await Promise.all([initThemes(), initPhoto(), loadShortcuts(), loadWork(), loadBookmarks(), initAssistant(), loadNews()]);
+
+  // New day while the dashboard stays open: fetch the new quote when you come back to it.
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") maybeRefreshQuote(); });
 
   for (const evt of ["onCreated", "onRemoved", "onChanged", "onMoved", "onChildrenReordered"]) {
     chrome.bookmarks[evt].addListener(loadBookmarks);

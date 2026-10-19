@@ -421,13 +421,20 @@ body {
   background: radial-gradient(ellipse 85% 80% at 50% 45%, transparent 55%, rgba(240, 244, 250, 0.55) 100%);
 }
 
+/* Where the Basic photo was taken: sits above Shortcuts in the left column */
 .photo-caption {
-  position: fixed; right: 16px; bottom: 14px; z-index: 2;
-  font-size: 12px; font-weight: 600;
-  padding: 5px 12px; border-radius: 999px;
-  background: rgba(255, 255, 255, 0.8); color: #1b2433;
+  align-self: flex-start;
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12.5px; font-weight: 700;
+  padding: 6px 14px; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82); color: #1b2433;
   backdrop-filter: blur(8px);
+  box-shadow: 0 4px 14px rgba(27, 36, 51, 0.12);
 }
+.photo-caption::before {
+  content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--accent);
+}
+.photo-caption[hidden] { display: none; }
 html:not([data-theme="basic"]) .photo-caption { display: none; }
 
 /* Motivated: static design — angled light-strip beams, fine grid, corner rings */
@@ -460,7 +467,6 @@ html:not([data-theme="basic"]) .photo-caption { display: none; }
   -webkit-mask-image: linear-gradient(180deg, #000 70%, transparent 100%);
           mask-image: linear-gradient(180deg, #000 70%, transparent 100%);
 }
-[data-theme="basic"] .photo-caption { position: absolute; top: calc(max(100vh, 720px) - 48px); bottom: auto; }
 
 /* ---------- sync status, settings, toast ---------- */
 .sync-status { margin-left: auto; font-size: 11.5px; color: var(--muted); }
@@ -566,3 +572,46 @@ html:not([data-theme="basic"]) .photo-caption { display: none; }
 .bubble.typing { letter-spacing: 3px; color: var(--muted); animation: zog-pulse 1.2s ease-in-out infinite; }
 @keyframes zog-pulse { 50% { opacity: 0.4; } }
 @media (prefers-reduced-motion: reduce) { .bubble.typing { animation: none; } }
+
+/* ---------- news ---------- */
+.icon-btn.small { width: 30px; height: 30px; margin-left: 8px; }
+.icon-btn.small:disabled { opacity: 0.5; cursor: progress; }
+.news-tabs { margin: -2px 0 6px; justify-content: flex-start; margin-left: 0; }
+.news-tabs:empty { display: none; }
+.news-list { display: flex; flex-direction: column; }
+.news-item {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 11px 4px; border-top: 1px solid var(--line);
+  color: var(--text); text-decoration: none; border-radius: 6px;
+}
+.news-item:first-child { border-top: 0; }
+.news-item:hover { background: var(--card-2); }
+.news-item:hover .news-title { color: var(--accent-text); }
+.news-topic { font-size: 10.5px; font-weight: 800; letter-spacing: 0.7px; text-transform: uppercase; color: var(--accent-text); }
+.news-title { font-weight: 700; font-size: 14.5px; line-height: 1.35; }
+.news-summary { color: var(--soft); font-size: 13px; }
+.news-meta { color: var(--muted); font-size: 12px; }
+
+.news-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.news-thumb {
+  flex: none; width: 96px; height: 68px; border-radius: 8px;
+  object-fit: cover; background: var(--card-2); border: 1px solid var(--line);
+}
+@media (max-width: 420px) { .news-thumb { width: 72px; height: 54px; } }
+
+/* assistant: removal confirmation */
+.bubble.confirm { display: flex; flex-direction: column; gap: 8px; max-width: 92%; }
+.bubble.confirm ul { margin: 0; padding-left: 18px; }
+.confirm-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.confirm-actions button {
+  font: inherit; font-size: 12.5px; font-weight: 700;
+  padding: 6px 14px; border-radius: 8px; cursor: pointer;
+  border: 1px solid var(--line); background: transparent; color: var(--text);
+}
+.confirm-actions .confirm-yes { background: var(--danger); border-color: transparent; color: #fff; }
+
+/* settings: open mode */
+.open-mode { border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px 10px; margin: 0 0 14px; }
+.open-mode legend { font-size: 12px; font-weight: 600; color: var(--muted); padding: 0 4px; }
+.sc-dialog label.radio { flex-direction: row; align-items: center; gap: 8px; margin: 6px 0 0; font-size: 13.5px; font-weight: 500; color: var(--text); }
+.sc-dialog label.radio input { accent-color: var(--accent); padding: 0; border: 0; background: none; width: 16px; height: 16px; margin: 0; }
