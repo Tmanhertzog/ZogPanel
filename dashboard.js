@@ -243,7 +243,18 @@ async function pullShortcutsFromNotion() {
     setShortcutStatus("Synced with Notion");
   } catch (e) {
     console.error("ZogPanel: Notion shortcuts", e);
-    setShortcutStatus(e.status === 401 ? "Notion token rejected" : e.status === 404 ? "Share the ZogPanel page with your integration" : "Notion unavailable · showing saved copy", true);
+    if (e.status === 404 && !pullShortcutsFromNotion._retried) {
+      // The ID may be wrong for this workspace: look the database up by name and retry once.
+      pullShortcutsFromNotion._retried = true;
+      const { hit, info } = await Notion.rediscover("shortcuts").catch(() => ({}));
+      pulling = false;
+      if (hit) return pullShortcutsFromNotion();
+      setShortcutStatus(info && info.workspace
+        ? `Can't see Shortcuts in "${info.workspace}" · see Settings`
+        : "Notion can't see Shortcuts · see Settings", true);
+    } else {
+      setShortcutStatus(e.status === 401 ? "Notion token rejected · see Settings" : "Notion unavailable · showing saved copy", true);
+    }
     if (!shortcuts.length) renderShortcuts();
   } finally {
     pulling = false;
@@ -401,32 +412,56 @@ function initShortcuts() {
 }
 
 // ---------- settings ----------
+// Checks the token and reports exactly what the integration can see.
+async function runNotionCheck({ closeOnSuccess }) {
+  const out = $("#settingsStatus");
+  out.textContent = "Checking Notion…";
+  const info = await Notion.diagnose();
+  if (info.error) {
+    out.textContent = info.error.status === 401
+      ? "This token was rejected. Copy the Internal Integration Secret again from notion.so/profile/integrations."
+      : "Couldn't reach Notion: " + info.error.message;
+    return false;
+  }
+  const who = `Integration "${info.bot || "?"}" in workspace "${info.workspace || "?"}"`;
+  const names = info.sources.map((s) => s.name || "(untitled)");
+  let target = info.sources.find((s) => s.id.replace(/-/g, "") === NOTION_DEFAULTS.shortcuts.replace(/-/g, ""));
+  if (!target) {
+    const { hit } = await Notion.rediscover("shortcuts");
+    target = hit;
+  }
+  if (target) {
+    out.textContent = `Connected ✓ ${who}. Can see: ${names.join(", ")}.`;
+    pullShortcutsFromNotion._retried = false;
+    loadShortcuts();
+    loadWork({ fromCache: false });
+    if (closeOnSuccess) setTimeout(() => $("#settingsDialog").close(), 1200);
+    return true;
+  }
+  out.textContent = names.length
+    ? `${who} can see ${names.join(", ")}, but not a "Shortcuts" database. Add the integration to the page that holds it (••• › Connections).`
+    : `${who} works, but nothing is shared with it yet. In Notion, open the ZogPanel page › ••• › Connections and add "${info.bot || "your integration"}". If it isn't listed there, the integration belongs to a different workspace than "${info.workspace}".`;
+  return false;
+}
+
 function initSettings() {
   const dlg = $("#settingsDialog");
   $("#openSettings").addEventListener("click", async () => {
-    $("#notionToken").value = await Notion.token();
+    const { notionToken = "" } = await chrome.storage.local.get("notionToken");
+    $("#notionToken").value = notionToken;
+    $("#notionToken").placeholder = Config.get("NOTION_TOKEN") ? "Using NOTION_TOKEN from .env" : "ntn_…";
     $("#settingsStatus").textContent = "";
     dlg.showModal();
+    if (await Notion.token()) runNotionCheck({ closeOnSuccess: false });
   });
+  $("#settingsCheck").addEventListener("click", () => runNotionCheck({ closeOnSuccess: false }));
   $("#settingsCancel").addEventListener("click", () => dlg.close());
   $("#settingsForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const value = $("#notionToken").value.trim();
     await Notion.setToken(value);
-    if (!value) { dlg.close(); loadShortcuts(); return; }
-    $("#settingsStatus").textContent = "Checking…";
-    try {
-      if (!NOTION_DEFAULTS.shortcuts) throw Object.assign(new Error("Add NOTION_SHORTCUTS_DS to your .env file"), { code: "NO_DS" });
-      await Notion.request(`data_sources/${NOTION_DEFAULTS.shortcuts}`);
-      $("#settingsStatus").textContent = "Connected ✓";
-      setTimeout(() => dlg.close(), 600);
-      loadShortcuts();
-    } catch (err) {
-      $("#settingsStatus").textContent =
-        err.status === 401 ? "That token was rejected. Copy it again from notion.so/my-integrations." :
-        err.status === 404 ? "Token works, but it can't see ZogPanel. In Notion, open the ZogPanel page › ••• › Connections and add your integration." :
-        "Couldn't reach Notion: " + err.message;
-    }
+    if (!(await Notion.token())) { dlg.close(); loadShortcuts(); return; }
+    await runNotionCheck({ closeOnSuccess: true });
   });
 }
 
@@ -522,7 +557,8 @@ function applyQuote() {
   initModeSwitch();
   initShortcuts();
   initSettings();
-  await Promise.all([initThemes(), initPhoto(), loadShortcuts(), loadBookmarks()]);
+  initWork();
+  await Promise.all([initThemes(), initPhoto(), loadShortcuts(), loadWork(), loadBookmarks(), initAssistant()]);
 
   for (const evt of ["onCreated", "onRemoved", "onChanged", "onMoved", "onChildrenReordered"]) {
     chrome.bookmarks[evt].addListener(loadBookmarks);

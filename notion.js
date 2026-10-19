@@ -3,12 +3,18 @@
 // otherwise NOTION_TOKEN from .env is used.
 
 // Data source IDs come from .env (see config.js / .env.example).
+// If an ID in .env can't be reached, ZogPanel looks the database up by name and
+// remembers what it found (chrome.storage.local "dsOverrides").
+const NOTION_DS_NAMES = { shortcuts: "Shortcuts", tasks: "Tasks", projects: "Projects", newsTopics: "News Topics" };
+const NOTION_DS_KEYS = { shortcuts: "NOTION_SHORTCUTS_DS", tasks: "NOTION_TASKS_DS", projects: "NOTION_PROJECTS_DS", newsTopics: "NOTION_NEWS_TOPICS_DS" };
+let dsOverrides = {};
 const NOTION_DEFAULTS = {
-  get shortcuts() { return Config.get("NOTION_SHORTCUTS_DS"); },
-  get tasks() { return Config.get("NOTION_TASKS_DS"); },
-  get projects() { return Config.get("NOTION_PROJECTS_DS"); },
-  get newsTopics() { return Config.get("NOTION_NEWS_TOPICS_DS"); },
+  get shortcuts() { return dsOverrides.shortcuts || Config.get("NOTION_SHORTCUTS_DS"); },
+  get tasks() { return dsOverrides.tasks || Config.get("NOTION_TASKS_DS"); },
+  get projects() { return dsOverrides.projects || Config.get("NOTION_PROJECTS_DS"); },
+  get newsTopics() { return dsOverrides.newsTopics || Config.get("NOTION_NEWS_TOPICS_DS"); },
 };
+chrome.storage.local.get("dsOverrides").then(({ dsOverrides: o }) => { if (o) dsOverrides = o; });
 
 const Notion = {
   async token() {
@@ -80,6 +86,39 @@ const Notion = {
       if (e.status === 400) return this.request(`pages/${pageId}`, { method: "PATCH", body: { archived: true } });
       throw e;
     }
+  },
+
+  // Who is this token, and which data sources can it see?
+  async diagnose() {
+    const info = { workspace: "", bot: "", sources: [] };
+    try {
+      const me = await this.request("users/me");
+      info.bot = me.name || "";
+      info.workspace = (me.bot && me.bot.workspace_name) || "";
+    } catch (e) { info.error = e; return info; }
+    try {
+      const res = await this.request("search", {
+        method: "POST",
+        body: { filter: { property: "object", value: "data_source" }, page_size: 100 },
+      });
+      info.sources = res.results.map((r) => ({
+        id: r.id,
+        name: (r.title || []).map((t) => t.plain_text).join("") || (r.name || ""),
+      }));
+    } catch (e) { info.searchError = e; }
+    return info;
+  },
+
+  // Find a data source by its usual name and remember it.
+  async rediscover(kind) {
+    const info = await this.diagnose();
+    const want = (NOTION_DS_NAMES[kind] || "").toLowerCase();
+    const hit = info.sources.find((s) => s.name.trim().toLowerCase() === want);
+    if (hit) {
+      dsOverrides[kind] = hit.id;
+      await chrome.storage.local.set({ dsOverrides });
+    }
+    return { hit, info };
   },
 
   // Property helpers

@@ -19,8 +19,11 @@ const CONFIG_DEFAULTS = {
   NOTION_PROJECTS_DS: "",
   NOTION_NEWS_TOPICS_DS: "",
 
+  AI_PROVIDER: "openai",
   OPENAI_API_KEY: "",
-  OPENAI_MODEL: "",
+  OPENAI_MODEL: "gpt-5.4-nano",
+  GEMINI_API_KEY: "",
+  GEMINI_MODEL: "gemini-3.1-flash-lite",
 };
 
 function parseEnv(text) {

@@ -83,13 +83,15 @@
           </form>
 
           <section class="card assistant" id="assistant" aria-label="AI assistant">
-            <div class="card-head"><h2>Assistant</h2><span class="hint">ChatGPT → Notion</span></div>
-            <div class="chat-log">
-              <div class="bubble bot">Ask me to add a task, start a project, or change your news topics. (Coming in phase 4.)</div>
+            <div class="card-head">
+              <h2>Assistant</h2>
+              <span id="chatProvider" class="hint">ChatGPT → Notion</span>
+              <button type="button" id="chatClear" class="link-btn">Clear</button>
             </div>
-            <form class="chat-input" autocomplete="off">
-              <input id="chatInput" type="text" placeholder="Tell ZogPanel what to do…" aria-label="Message the assistant" disabled />
-              <button type="submit" aria-label="Send" disabled>
+            <div class="chat-log" id="chatLog" aria-live="polite"></div>
+            <form class="chat-input" id="chatForm" autocomplete="off">
+              <input id="chatInput" type="text" placeholder="Tell ZogPanel what to do…" aria-label="Message the assistant" maxlength="1000" />
+              <button type="submit" id="chatSend" aria-label="Send">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
               </button>
             </form>
@@ -111,13 +113,25 @@
       <!-- RIGHT -->
       <div class="col">
         <section class="card">
-          <div class="card-head"><h2>Tasks</h2><span class="hint">From Notion · by priority</span></div>
-          <p class="placeholder">Your Notion tasks will show here in phase 2.</p>
+          <div class="card-head">
+            <h2>Tasks</h2>
+            <span id="taskCount" class="count-badge"></span>
+            <span id="taskStatus" class="sync-status"></span>
+          </div>
+          <div id="taskList" class="task-list"></div>
+          <form id="taskAdd" class="task-add" autocomplete="off" hidden>
+            <label for="taskAddInput" class="sr-only">New task</label>
+            <span class="plus" aria-hidden="true">+</span>
+            <input id="taskAddInput" type="text" placeholder="Add a task…" maxlength="200" />
+          </form>
         </section>
 
         <section class="card">
-          <div class="card-head"><h2>Projects</h2><span class="hint">Active</span></div>
-          <p class="placeholder">Active projects and their progress, from Notion (phase 2).</p>
+          <div class="card-head">
+            <h2>Projects</h2>
+            <span id="projectStatus" class="sync-status"></span>
+          </div>
+          <div id="projectList" class="project-list"></div>
         </section>
 
         <section class="card">
@@ -154,6 +168,7 @@
       <p class="dialog-note">Stays on this computer only. Create one at notion.so/my-integrations, then add it to the ZogPanel page under ••• › Connections.</p>
       <p id="settingsStatus" class="dialog-note" role="status"></p>
       <div class="sc-actions">
+        <button type="button" id="settingsCheck">Check connection</button>
         <span class="spacer"></span>
         <button type="button" id="settingsCancel">Cancel</button>
         <button type="submit" class="primary">Save</button>
@@ -165,6 +180,8 @@
 
   <script src="config.js"></script>
   <script src="notion.js"></script>
+  <script src="tasks.js"></script>
+  <script src="assistant.js"></script>
   <script src="dashboard.js"></script>
 </body>
 </html>

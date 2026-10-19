@@ -2,6 +2,10 @@
 /* Basic is the default */
 :root,
 [data-theme="basic"] {
+  --chip-high: #b4232f;
+  --chip-medium: #8a5a00;
+  --chip-low: #4a5468;
+  --danger: #c4283a;
   --card-solid: #ffffff;
   --bg: #cfe3f2;
   /* Your photo if set, otherwise a soft sky stand-in. */
@@ -26,6 +30,10 @@
 }
 
 [data-theme="motivated"] {
+  --chip-high: #ff8fa3;
+  --chip-medium: #ffd27a;
+  --chip-low: #b9b0dc;
+  --danger: #ff6b81;
   --card-solid: #140c26;
   /* High contrast: near-black violet with a stark electric-purple accent */
   --bg: #08050f;
@@ -53,6 +61,10 @@
 }
 
 [data-theme="chill"] {
+  --chip-high: #b4232f;
+  --chip-medium: #8a5a00;
+  --chip-low: #3f5a56;
+  --danger: #c4283a;
   --card-solid: #ffffff;
   /* Deep-sea teal to bright aqua, with frosted white cards */
   --bg: #0a4f5c;
@@ -474,3 +486,83 @@ html:not([data-theme="basic"]) .photo-caption { display: none; }
   background: #1b1b24; color: #fff; font-size: 13px;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
 }
+
+/* ---------- tasks ---------- */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.count-badge {
+  font-size: 11px; font-weight: 700; min-width: 20px; text-align: center;
+  padding: 1px 7px; border-radius: 999px;
+  background: var(--tab-on); color: var(--tab-on-text);
+}
+.count-badge:empty { display: none; }
+
+.task-list { display: flex; flex-direction: column; }
+.task-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 2px; border-top: 1px solid var(--line);
+  transition: opacity 0.4s ease;
+}
+.task-row:first-child { border-top: 0; }
+.task-row.done { opacity: 0.45; }
+.task-row.done .task-name { text-decoration: line-through; }
+
+.task-check {
+  width: 20px; height: 20px; flex: none; padding: 0;
+  border-radius: 6px; border: 2px solid var(--muted); background: transparent;
+  cursor: pointer; display: grid; place-items: center;
+}
+.task-check:hover { border-color: var(--accent); }
+.task-check[aria-checked="true"] { background: var(--accent); border-color: var(--accent); }
+.task-check[aria-checked="true"]::after {
+  content: ""; width: 5px; height: 10px; margin-top: -2px;
+  border: solid var(--on-accent); border-width: 0 2px 2px 0; transform: rotate(45deg);
+}
+
+.task-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.task-name { color: var(--text); font-weight: 600; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.task-name:hover { color: var(--accent-text); text-decoration: underline; }
+.task-meta { color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.task-meta .due.overdue { color: var(--danger); font-weight: 700; }
+.task-meta .due.soon { color: var(--accent-text); font-weight: 600; }
+.task-tags { display: flex; gap: 6px; flex: none; }
+
+.chip {
+  font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px; white-space: nowrap;
+  color: var(--soft); background: color-mix(in srgb, var(--soft) 14%, transparent);
+}
+.chip-high { color: var(--chip-high); background: color-mix(in srgb, var(--chip-high) 15%, transparent); }
+.chip-medium { color: var(--chip-medium); background: color-mix(in srgb, var(--chip-medium) 16%, transparent); }
+.chip-low { color: var(--chip-low); background: color-mix(in srgb, var(--chip-low) 14%, transparent); }
+.chip-progress, .chip-active { color: var(--accent-text); background: color-mix(in srgb, var(--accent) 16%, transparent); }
+
+.task-add {
+  display: flex; align-items: center; gap: 10px;
+  margin-top: 8px; padding: 0 12px; height: 40px;
+  border-radius: 10px; border: 1px dashed var(--line); background: transparent;
+}
+.task-add:focus-within { border-style: solid; border-color: var(--accent); }
+.task-add .plus { color: var(--muted); font-size: 18px; }
+.task-add input { flex: 1; min-width: 0; border: 0; outline: none; background: transparent; color: var(--text); font: inherit; }
+
+/* ---------- projects ---------- */
+.project-list { display: flex; flex-direction: column; gap: 16px; }
+.project { display: flex; flex-direction: column; gap: 7px; }
+.project-top { display: flex; align-items: center; gap: 8px; }
+.project-name { flex: 1; min-width: 0; color: var(--text); font-weight: 600; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.project-name:hover { color: var(--accent-text); text-decoration: underline; }
+.bar { height: 6px; border-radius: 999px; background: var(--line); overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 999px; background: var(--accent); transition: width 0.4s ease; }
+.project-meta { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; }
+
+.toast { display: flex; align-items: center; gap: 14px; }
+.toast[hidden] { display: none; }
+.toast-action { font: inherit; font-weight: 700; border: 0; background: transparent; color: #c9b8ff; cursor: pointer; padding: 0; }
+
+/* ---------- assistant chat ---------- */
+.assistant .card-head .hint { margin-left: auto; }
+.assistant .card-head .link-btn { margin-left: 8px; }
+.chat-log { white-space: pre-line; }
+.bubble.error { border-color: var(--danger); color: var(--danger); }
+.bubble.typing { letter-spacing: 3px; color: var(--muted); animation: zog-pulse 1.2s ease-in-out infinite; }
+@keyframes zog-pulse { 50% { opacity: 0.4; } }
+@media (prefers-reduced-motion: reduce) { .bubble.typing { animation: none; } }

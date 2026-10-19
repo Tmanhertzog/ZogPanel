@@ -47,7 +47,9 @@ A personal dashboard for Chrome that opens once when the browser starts. It show
 | `MAX_SHORTCUTS` | Maximum number of shortcuts |
 | `NOTION_TOKEN`, `NOTION_VERSION` | Notion API access |
 | `NOTION_*_DS` | Data source IDs of your Notion databases |
-| `OPENAI_API_KEY`, `OPENAI_MODEL` | For news and the assistant (coming soon) |
+| `AI_PROVIDER` | `openai` or `gemini`: which AI runs the assistant |
+| `OPENAI_API_KEY`, `OPENAI_MODEL` | OpenAI key and model (default `gpt-5.4-nano`) |
+| `GEMINI_API_KEY`, `GEMINI_MODEL` | Gemini key and model (default `gemini-3.1-flash-lite`) |
 
 `.env` is git-ignored. Never commit real keys.
 
@@ -60,5 +62,7 @@ A personal dashboard for Chrome that opens once when the browser starts. It show
 | `dashboard.html/.css/.js` | The dashboard |
 | `config.js` | Reads `.env` |
 | `notion.js` | Small Notion API client |
+| `tasks.js` | Tasks and Projects cards (Notion) |
+| `assistant.js` | AI chat that adds tasks, projects, topics and shortcuts |
 | `theme-boot.js` | Applies the saved theme before first paint |
 | `update-images.ps1` | Rebuilds the background photo list |
