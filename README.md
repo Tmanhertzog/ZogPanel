@@ -47,20 +47,3 @@ ZogPanel is a personal Chrome dashboard that shows your shortcuts, bookmarks, ta
 10. **(optional)** Add background photos by putting images in `basic_bkg_images/`, then right-click `update-images.ps1` › *Run with PowerShell*. Run it again whenever you add or remove photos.
 11. After changing any file, including `.env`, click the reload icon on the ZogPanel card.
 
-
-## Files
-
-| File | Purpose |
-| --- | --- |
-| `manifest.json` | Chrome extension manifest (MV3) |
-| `background.js` | Opens the dashboard on startup or on new tabs |
-| `dashboard.html/.css/.js` | The dashboard |
-| `config.js` | Reads `.env` |
-| `notion.js` | Small Notion API client |
-| `tasks.js` | Tasks and Projects cards (Notion) |
-| `assistant.js` | AI chat that manages tasks, projects, topics and shortcuts |
-| `assistant-instructions.md` | The assistant's instructions; edit to change how it behaves |
-| `quote.js` | Motivated theme's daily quote |
-| `news.js` | News card: Google News headlines per topic, picked and summarized by AI |
-| `theme-boot.js` | Applies the saved theme before first paint |
-| `update-images.ps1` | Rebuilds the background photo list |
