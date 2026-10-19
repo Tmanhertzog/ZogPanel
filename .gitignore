@@ -1,0 +1,13 @@
+# Personal settings and keys
+.env
+
+# Personal background photos (keep the folder, not the photos)
+basic_bkg_images/*
+!basic_bkg_images/.gitkeep
+
+# OS / editor clutter
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+*.zip
