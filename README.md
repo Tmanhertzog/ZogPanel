@@ -1,7 +1,7 @@
 # Data Augmentor
 ### Created by: Tristan Hertzog
 
-Demo video: []()
+Demo video: [https://youtu.be/uavSiSlfsFE](https://youtu.be/uavSiSlfsFE)
 
 ZogPanel is a personal Chrome dashboard that shows your shortcuts, bookmarks, tasks and projects, and AI-curated news on one page. It includes an AI assistant that updates for you.
 
