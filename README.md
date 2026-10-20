@@ -1,4 +1,4 @@
-# Data Augmentor
+# ZogPanel
 ### Created by: Tristan Hertzog
 
 Demo video: [https://youtu.be/uavSiSlfsFE](https://youtu.be/uavSiSlfsFE)
